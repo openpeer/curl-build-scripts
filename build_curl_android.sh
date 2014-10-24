@@ -41,28 +41,28 @@ echo "----------------- Exporting the android-ndk path ----------------"
 #export PATH=$PATH:$Input:$Input/toolchains/arm-linux-androideabi-4.7/prebuilt/$HOST_OS-$ARCHTYPE/bin
 
 #create install directories
-mkdir -p ./../../../build
-mkdir -p ./../../../build/android
+mkdir -p ./../build
+mkdir -p ./../build/android
 
 #curl shared/static module build
 echo "--------Building curl 7.38.0 shared lib for ANDROID platform -------"
 pushd `pwd`
-mkdir -p ./../../../build/android/curl
+mkdir -p ./../build/android/curl
 
-/usr/bin/curl -L -o ./../../../build/android/curl/curl-7.38.0.zip http://curl.haxx.se/download/curl-7.38.0.zip
+/usr/bin/curl -L -o ./../build/android/curl/curl-7.38.0.zip http://curl.haxx.se/download/curl-7.38.0.zip
 
 rm -rf curl
-unzip -a ./../../../build/android/curl/curl-7.38.0.zip -d ./../../../build/android/curl/
+unzip -a ./../build/android/curl/curl-7.38.0.zip -d ./../build/android/curl/
 
 
-$Input/build/tools/make-standalone-toolchain.sh --ndk-dir=/usr/ndk/x86_64/android-ndk-r8e --system=darwin-x86_64 --install-dir=./../../../build/android/curl/my-android-toolchain
+$Input/build/tools/make-standalone-toolchain.sh --ndk-dir=/usr/ndk/x86_64/android-ndk-r8e --system=darwin-x86_64 --install-dir=./../build/android/curl/my-android-toolchain
 popd
 
 #pushd /tmp/my-android-toolchain
 #tar xvfj arm-linux-androideabi-4.6.tar.bz2
 #popd
 
-pushd ./../../../build/android/curl/curl-7.38.0
+pushd ./../build/android/curl/curl-7.38.0
 export PATH=$PATH:../my-android-toolchain/arm-linux-androideabi-4.6/bin
 ./configure --host=arm-linux-androideabi
 
@@ -73,7 +73,7 @@ cp -r ./lib/.libs/libcurl.a ./../
 cp -r ./include  ./../
 popd
 
-pushd ./../../../build/android/curl
+pushd ./../build/android/curl
 pwd
 rm -rf curl-7.38.0
 rm curl-7.38.0.zip
