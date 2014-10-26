@@ -55,15 +55,13 @@ rm -rf curl
 unzip -a ./../build/android/curl/curl-7.38.0.zip -d ./../build/android/curl/
 
 
-$Input/build/tools/make-standalone-toolchain.sh --ndk-dir=/usr/ndk/x86_64/android-ndk-r8e --system=darwin-x86_64 --install-dir=./../build/android/curl/my-android-toolchain
+$Input/build/tools/make-standalone-toolchain.sh --ndk-dir=/usr/ndk/x86_64/android-ndk-r8e --system=darwin-x86_64 --toolchain=arm-linux-androideabi-4.7 --install-dir=/tmp/my-android-toolchain
+#--install-dir=./../build/android/curl/my-android-toolchain
 popd
 
-#pushd /tmp/my-android-toolchain
-#tar xvfj arm-linux-androideabi-4.6.tar.bz2
-#popd
 
 pushd ./../build/android/curl/curl-7.38.0
-export PATH=$PATH:../my-android-toolchain/arm-linux-androideabi-4.6/bin
+export PATH=$PATH:/tmp/my-android-toolchain/bin
 ./configure --host=arm-linux-androideabi
 
 make
@@ -74,11 +72,10 @@ cp -r ./include  ./../
 popd
 
 pushd ./../build/android/curl
-pwd
 rm -rf curl-7.38.0
 rm curl-7.38.0.zip
-rm -rf my-android-toolchain
 popd
+rm -rf /tmp/my-android-toolchain
 
 echo "--------curl 7.38.0 shared lib for ANDROID platform successfully built———"
 
