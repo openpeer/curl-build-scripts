@@ -61,7 +61,7 @@ popd
 
 
 pushd ./../build/android/curl/curl-7.38.0
-export PATH=$PATH:/tmp/my-android-toolchain/bin
+export PATH=/tmp/my-android-toolchain/bin:$PATH
 ./configure --host=arm-linux-androideabi
 
 make
