@@ -55,7 +55,7 @@ rm -rf curl
 unzip -a ./../build/android/curl/curl-7.38.0.zip -d ./../build/android/curl/
 
 
-$Input/build/tools/make-standalone-toolchain.sh --ndk-dir=/usr/ndk/x86_64/android-ndk-r8e --system=darwin-x86_64 --toolchain=arm-linux-androideabi-4.7 --install-dir=/tmp/my-android-toolchain
+$Input/build/tools/make-standalone-toolchain.sh --ndk-dir=$Input --system=darwin-x86_64 --toolchain=arm-linux-androideabi-4.7 --install-dir=/tmp/my-android-toolchain
 #--install-dir=./../build/android/curl/my-android-toolchain
 popd
 
