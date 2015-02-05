@@ -31,14 +31,14 @@ if [[ $1 == *ndk* ]]; then
 	Input=$1;
 else
 	echo "Please enter your android ndk path:"
-	echo "For example:/home/astro/android-ndk-r8e"
+	echo "For example:/home/astro/android-ndk-r10c"
 	read Input
 	echo "You entered:$Input"
 fi
 
 #Set path
 echo "----------------- Exporting the android-ndk path ----------------"
-#export PATH=$PATH:$Input:$Input/toolchains/arm-linux-androideabi-4.7/prebuilt/$HOST_OS-$ARCHTYPE/bin
+#export PATH=$PATH:$Input:$Input/toolchains/llvm-3.5/prebuilt/$HOST_OS-$ARCHTYPE/bin
 
 #create install directories
 mkdir -p ./../build
@@ -55,14 +55,13 @@ rm -rf curl
 unzip -a ./../build/android/curl/curl-7.38.0.zip -d ./../build/android/curl/
 
 
-$Input/build/tools/make-standalone-toolchain.sh --ndk-dir=$Input --system=darwin-x86_64 --toolchain=arm-linux-androideabi-4.7 --install-dir=/tmp/my-android-toolchain
-#--install-dir=./../build/android/curl/my-android-toolchain
+$Input/build/tools/make-standalone-toolchain.sh --ndk-dir=$Input --system=darwin-x86_64 --toolchain=arm-linux-androideabi-clang3.5 --llvm-version=3.5 --install-dir=/tmp/my-android-toolchain
 popd
 
 
 pushd ./../build/android/curl/curl-7.38.0
 export PATH=/tmp/my-android-toolchain/bin:$PATH
-./configure --host=arm-linux-androideabi
+./configure CC=clang CXX=clang++ --host=arm-linux-androideabi
 
 make
 
