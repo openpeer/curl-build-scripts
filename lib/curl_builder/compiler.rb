@@ -57,7 +57,7 @@ module CurlBuilder
     def platform_for(architecture)
       case architecture
       when "x86_64"
-        "MacOSX"
+        setup(:osx_sdk_version) == "none" ? "iPhoneSimulator" : "MacOSX"
       when "i386"
         "iPhoneSimulator"
       else
@@ -92,7 +92,10 @@ module CurlBuilder
     end
 
     def compilation_flags_for(platform, architecture)
-      if platform == "iPhoneOS" || platform == "iPhoneSimulator"
+      if platform == "iPhoneSimulator"
+        version = "6.0"
+        min_version = "-miphoneos-version-min=#{version}"
+      elsif platform == "iPhoneOS"
         version = architecture == "arm64" ? "6.0" : "5.0"
         min_version = "-miphoneos-version-min=#{version}"
       else
@@ -123,6 +126,8 @@ module CurlBuilder
     end
 
     def configure(architecture, tools, compilation_flags)
+      host = (architecture != "arm64" ? architecture : "arm") << "-apple-darwin"
+
       flags  = CurlBuilder.build_flags(configuration[:flags])
       flags += CurlBuilder.build_protocols(configuration[:protocols])
 
@@ -133,7 +138,7 @@ module CurlBuilder
         #{expand_env_vars(tools)}
         #{expand_env_vars(compilation_flags)}
         ./configure
-        --host=#{architecture}-apple-darwin
+        --host=#{host}
         --disable-shared
         --enable-static
         #{flags.join(" ")}
