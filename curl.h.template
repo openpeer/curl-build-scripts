@@ -1,0 +1,14 @@
+#ifdef __APPLE__
+#include <TargetConditionals.h>
+    #if TARGET_OS_IPHONE
+            #if defined(__LP64__) && __LP64__
+                #include "../curl/ios64-dev/include/curl.h"
+            #else
+                #include "../curl/ios-dev/include/curl.h"
+            #endif
+    #elif TARGET_OS_MAC
+        #include "../curl/osx/include/curl.h"
+    #endif
+#else //__APPLE__
+#error PLEASE ADD TARGET!
+#endif //__APPLE__

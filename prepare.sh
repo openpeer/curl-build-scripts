@@ -34,8 +34,8 @@ preparelink()
 
 ./build_curl
 
-preparelink "curl" "curl" "ios-appstore/include"
-
+mkdir -p curl/curl
+cp -f curl.h.template curl/curl/curl.h
 
 echo
 echo Curl ready.
