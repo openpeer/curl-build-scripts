@@ -1,8 +1,14 @@
 @echo off
 echo.
 echo Preparing curl...
+echo.
+echo Thanks to https://github.com/blackrosezy/build-libcurl-windows for instructions
+echo.
 
 set FAILURE=0
+
+set BUILD_X86=1
+set BUILD_X64=1
 
 where 7za > NUL 2>&1
 if ERRORLEVEL 1 call:failure %errorlevel% "Could not 7za (see 7-zip.org and download command line version)"
@@ -14,40 +20,105 @@ if "%FAILURE%" NEQ "0" goto:eof
 
 echo Verifying download from https://github.com/peters/curl-for-windows ...
 
-call:download http://iweb.dl.sourceforge.net/project/curlforwindows/curl-7.40.0-openssl-libssh2-zlib-x86.7z curl-7.40.0-openssl-libssh2-zlib-x86.7z
-if "%FAILURE%" NEQ "0" goto:eof
-call:download http://iweb.dl.sourceforge.net/project/curlforwindows/curl-7.40.0-openssl-libssh2-zlib-x64.7z curl-7.40.0-openssl-libssh2-zlib-x64.7z
+call:download http://curl.haxx.se/download/curl-7.41.0.zip curl-7.41.0.zip
 if "%FAILURE%" NEQ "0" goto:eof
 
-call:download https://github.com/bagder/curl/archive/curl-7_40_0.zip curl-7_40_0.zip
+call:extract curl-7.41.0.zip download
 if "%FAILURE%" NEQ "0" goto:eof
 
-call:extract curl-7.40.0-openssl-libssh2-zlib-x86.7z 7.40.0\x86
+call:dolink . include download\curl-7.41.0\include
+if "%failure%" neq "0" goto:eof
+
+if EXIST current\nul rmdir current
+if ERRORLEVEL 1 call:failure %errorlevel% "Could not remove previous curl symbolic link"
 if "%FAILURE%" NEQ "0" goto:eof
-call:extract curl-7.40.0-openssl-libssh2-zlib-x64.7z 7.40.0\x64
-if "%FAILURE%" NEQ "0" goto:eof
 
-call:extract curl-7_40_0.zip 7.40.0
-if "%FAILURE%" NEQ "0" goto:eof
+call:dolink . current download\curl-7.41.0
+if "%failure%" neq "0" goto:eof
 
-call:dolink . include 7.40.0\curl-curl-7_40_0\include
-if "%failure%" neq "0" goto:done_with_error
 
-call:dolink . x86 7.40.0\x86
-if "%failure%" neq "0" goto:done_with_error
+call:dobuild
+if "%failure%" neq "0" goto:eof
 
-call:dolink . x64 7.40.0\x64
-if "%failure%" neq "0" goto:done_with_error
+if %BUILD_X86% == 0 goto:skiplinkx86
+
+call:dolink . x86-release-dll current\builds\libcurl-vc-x86-release-dll-ipv6-sspi-winssl
+if "%failure%" neq "0" goto:eof
+
+call:dolink . x86-debug-dll current\builds\libcurl-vc-x86-debug-dll-ipv6-sspi-winssl
+if "%failure%" neq "0" goto:eof
+
+call:dolink . x86-release-static current\builds\libcurl-vc-x86-release-static-ipv6-sspi-winssl
+if "%failure%" neq "0" goto:eof
+
+call:dolink . x86-debug-static current\builds\libcurl-vc-x86-debug-static-ipv6-sspi-winssl
+if "%failure%" neq "0" goto:eof
+
+call:copyfile x86-debug-dll\lib\libcurl_debug.exp x86-debug-dll\lib\libcurl.exp Y
+if "%failure%" neq "0" goto:eof
+call:copyfile x86-debug-dll\lib\libcurl_debug.lib x86-debug-dll\lib\libcurl.lib Y
+if "%failure%" neq "0" goto:eof
+call:copyfile x86-debug-dll\lib\libcurl_debug.pdb x86-debug-dll\lib\libcurl.pdb Y
+if "%failure%" neq "0" goto:eof
+
+call:copyfile x86-release-static\lib\libcurl_a.lib x86-release-static\lib\libcurl.lib Y
+if "%failure%" neq "0" goto:eof
+call:copyfile x86-debug-static\lib\libcurl_a_debug.lib x86-debug-static\lib\libcurl.lib Y
+if "%failure%" neq "0" goto:eof
+
+:skiplinkx86
+
+if %BUILD_X64% == 0 goto:skiplinkx64
+
+call:dolink . x64-release-dll current\builds\libcurl-vc-x64-release-dll-ipv6-sspi-winssl
+if "%failure%" neq "0" goto:eof
+
+call:dolink . x64-debug-dll current\builds\libcurl-vc-x64-debug-dll-ipv6-sspi-winssl
+if "%failure%" neq "0" goto:eof
+
+call:dolink . x64-release-static current\builds\libcurl-vc-x64-release-static-ipv6-sspi-winssl
+if "%failure%" neq "0" goto:eof
+
+call:dolink . x64-debug-static current\builds\libcurl-vc-x64-debug-static-ipv6-sspi-winssl
+if "%failure%" neq "0" goto:eof
+
+call:copyfile x64-debug-dll\lib\libcurl_debug.exp x64-debug-dll\lib\libcurl.exp Y
+if "%failure%" neq "0" goto:eof
+call:copyfile x64-debug-dll\lib\libcurl_debug.lib x64-debug-dll\lib\libcurl.lib Y
+if "%failure%" neq "0" goto:eof
+call:copyfile x64-debug-dll\lib\libcurl_debug.pdb x64-debug-dll\lib\libcurl.pdb Y
+if "%failure%" neq "0" goto:eof
+
+call:copyfile x64-release-static\lib\libcurl_a.lib x64-release-static\lib\libcurl.lib Y
+if "%failure%" neq "0" goto:eof
+call:copyfile x64-debug-static\lib\libcurl_a_debug.lib x64-debug-static\lib\libcurl.lib Y
+if "%failure%" neq "0" goto:eof
+
+
+:skiplinkx64
+
+
+if EXIST include\curl\curlbuild.h goto:skipcopybuild
 
 if NOT EXIST include\curl\curlbuild.h.dist call:failure 1 "Could not find curl build distribution header !"
-if "%failure%" neq "0" goto:done_with_error
+if "%failure%" neq "0" goto:eof
 
 call:copyfile include\curl\curlbuild.h.dist include\curl\curlbuild.h
-if "%failure%" neq "0" goto:done_with_error
+if "%failure%" neq "0" goto:eof
+
+:skipcopybuild
+
 
 goto:done
 
 :copyfile
+if "%~3" == "Y" goto:copyfilereplace
+goto copyfilenoreplace
+
+:copyfilereplace
+if EXIST %~2 del %~2
+
+:copyfilenoreplace
 if EXIST %~2 goto:eof
 echo.
 echo Copying file from %~1 to %~2 ...
@@ -106,6 +177,185 @@ goto:eof
 popd
 goto:eof
 
+
+:dobuild
+setlocal EnableDelayedExpansion
+
+set PROGFILES=%ProgramFiles%
+if not "%ProgramFiles(x86)%" == "" set PROGFILES=%ProgramFiles(x86)%
+
+REM Check if Visual Studio 2013 is installed
+set MSVCDIR="%PROGFILES%\Microsoft Visual Studio 12.0"
+if exist %MSVCDIR% (
+    set COMPILER_VER="2013"
+	goto setup_env
+)
+
+REM Check if Visual Studio 2012 is installed
+set MSVCDIR="%PROGFILES%\Microsoft Visual Studio 11.0"
+if exist %MSVCDIR% (
+    set COMPILER_VER="2012"
+	goto setup_env
+)
+
+REM Check if Visual Studio 2010 is installed
+set MSVCDIR="%PROGFILES%\Microsoft Visual Studio 10.0"
+if exist %MSVCDIR% (
+    set COMPILER_VER="2010"
+	goto setup_env
+)
+
+REM Check if Visual Studio 2008 is installed
+set MSVCDIR="%PROGFILES%\Microsoft Visual Studio 9.0"
+if exist %MSVCDIR% (
+    set COMPILER_VER="2008"
+	goto setup_env
+)
+
+REM Check if Visual Studio 2005 is installed
+set MSVCDIR="%PROGFILES%\Microsoft Visual Studio 8"
+if exist %MSVCDIR% (
+	set COMPILER_VER="2005"
+	goto setup_env
+) 
+
+REM Check if Visual Studio 6 is installed
+set MSVCDIR="%PROGFILES%\Microsoft Visual Studio\VC98"
+if exist %MSVCDIR% (
+	set COMPILER_VER="6"
+	goto setup_env
+) 
+
+call:failure 1 "No compiler : Microsoft Visual Studio (6, 2005, 2008, 2010, 2012 or 2013) is not installed.""
+goto:eof
+
+:setup_env
+
+echo Setting up environment ...
+
+if %COMPILER_VER% == "6" (
+	call %MSVCDIR%\Bin\VCVARS32.BAT
+	goto begin
+)
+
+:begin
+set ROOT_DIR="%CD%"
+
+if %COMPILER_VER% == "6" (
+	set VCVERSION = 6
+	goto buildnow
+)
+
+if %COMPILER_VER% == "2005" (
+	set VCVERSION = 8
+	goto buildnow
+)
+
+if %COMPILER_VER% == "2008" (
+	set VCVERSION = 9
+	goto buildnow
+)
+
+if %COMPILER_VER% == "2010" (
+	set VCVERSION = 10
+	goto buildnow
+)
+
+if %COMPILER_VER% == "2012" (
+	set VCVERSION = 11
+	goto buildnow
+)
+
+if %COMPILER_VER% == "2013" (
+	set VCVERSION = 12
+	goto buildnow
+)
+
+:buildnow
+
+pushd current\winbuild > NUL
+if ERRORLEVEL 1 call:failure %errorlevel% "Could not find current curl"
+if "%failure%" neq "0" goto:eof
+
+rem msbuild vc6libcurl.vcxproj /p:Configuration="DLL Debug" /t:Rebuild
+rem msbuild vc6libcurl.vcxproj /p:Configuration="DLL Release" /t:Rebuild
+rem msbuild vc6libcurl.vcxproj /p:Configuration="LIB Debug" /t:Rebuild
+rem msbuild vc6libcurl.vcxproj /p:Configuration="LIB Release" /t:Rebuild
+
+if %BUILD_X86% == 0 goto:skipx86
+
+echo -------------------------------------------------------------------------
+echo -------------------------------------------------------------------------
+echo -------------------------------------------------------------------------
+echo -------------------------------------------------------------------------
+echo Building x86 ...
+echo -------------------------------------------------------------------------
+echo -------------------------------------------------------------------------
+echo -------------------------------------------------------------------------
+echo -------------------------------------------------------------------------
+
+call %MSVCDIR%\VC\vcvarsall.bat x86
+if ERRORLEVEL 1 call:failure %errorlevel% "Could not setup x86 compiler"
+if "%failure%" neq "0" goto:post_build
+
+
+nmake /f Makefile.vc mode=dll VC=%VCVERSION% DEBUG=yes
+if ERRORLEVEL 1 call:failure %errorlevel% "Curl x86 debug DLL build failed"
+if "%failure%" neq "0" goto:post_build
+
+nmake /f Makefile.vc mode=dll VC=%VCVERSION% DEBUG=no GEN_PDB=yes
+if ERRORLEVEL 1 call:failure %errorlevel% "Curl x86 release DLL build failed"
+if "%failure%" neq "0" goto:post_build
+
+nmake /f Makefile.vc mode=static VC=%VCVERSION% DEBUG=yes
+if ERRORLEVEL 1 call:failure %errorlevel% "Curl x86 debug static lib build failed"
+if "%failure%" neq "0" goto:post_build
+
+nmake /f Makefile.vc mode=static VC=%VCVERSION% DEBUG=no
+if ERRORLEVEL 1 call:failure %errorlevel% "Curl x86 release static lib build failed"
+if "%failure%" neq "0" goto:post_build
+
+:skipx86
+
+if %BUILD_X64% == 0 goto:skipx64
+
+echo -------------------------------------------------------------------------
+echo -------------------------------------------------------------------------
+echo -------------------------------------------------------------------------
+echo -------------------------------------------------------------------------
+echo Building x64
+echo -------------------------------------------------------------------------
+echo -------------------------------------------------------------------------
+echo -------------------------------------------------------------------------
+echo -------------------------------------------------------------------------
+
+call %MSVCDIR%\VC\vcvarsall.bat x64
+if ERRORLEVEL 1 call:failure %errorlevel% "Could not setup x64 compiler"
+if "%failure%" neq "0" goto:post_build
+
+nmake /f Makefile.vc mode=dll VC=%VCVERSION% DEBUG=yes MACHINE=x64
+if ERRORLEVEL 1 call:failure %errorlevel% "Curl x64 debug DLL build failed"
+if "%failure%" neq "0" goto:post_build
+
+nmake /f Makefile.vc mode=dll VC=%VCVERSION% DEBUG=no GEN_PDB=yes MACHINE=x64
+if ERRORLEVEL 1 call:failure %errorlevel% "Curl x64 release DLL build failed"
+if "%failure%" neq "0" goto:post_build
+
+nmake /f Makefile.vc mode=static VC=%VCVERSION% DEBUG=yes MACHINE=x64
+if ERRORLEVEL 1 call:failure %errorlevel% "Curl x64 debug static lib build failed"
+if "%failure%" neq "0" goto:post_build
+
+nmake /f Makefile.vc mode=static VC=%VCVERSION% DEBUG=no MACHINE=x64
+if ERRORLEVEL 1 call:failure %errorlevel% "Curl x64 release static lib build failed"
+if "%failure%" neq "0" goto:post_build
+
+:skipx64
+
+:post_build
+
+popd > NUL
+
+goto:eof
 
 
 :failure
