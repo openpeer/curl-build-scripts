@@ -10,8 +10,9 @@ set FAILURE=0
 set BUILD_X86=1
 set BUILD_X64=1
 
-where 7za > NUL 2>&1
-if ERRORLEVEL 1 call:failure %errorlevel% "Could not 7za (see 7-zip.org and download command line version)"
+set BASEPATH=%CD%
+
+call:download7a
 if "%FAILURE%" NEQ "0" goto:eof
 
 where powershell > NUL 2>&1
@@ -146,12 +147,27 @@ echo.
 
 rem python -c "import zipfile,os.path;zipfile.ZipFile('%Z~1').extractall('%~2');"
 
-7za x -aos -o%~2 %~1
+%BASEPATH%\7za\7za x -aos -o%~2 %~1
 if ERRORLEVEL 1 call:failure %errorlevel% "Could not extract %~1 into %~2"
 if "%FAILURE%" NEQ "0" goto:eof
 
 goto:eof
 
+:download7a
+
+if EXIST %BASEPATH%\7za\7za.exe goto:eof
+
+call:download http://7-zip.org/a/7za920.zip 7za920.zip
+if "%FAILURE%" NEQ "0" goto:eof
+
+if NOT EXIST %BASEPATH%\zipjs.bat call:failure 1 "Could not find unzip script"
+if "%FAILURE%" NEQ "0" goto:eof
+
+echo %BASEPATH%\zipjs.bat unzip -source 7za920.zip -destination 7za
+call %BASEPATH%\zipjs.bat unzip -source 7za920.zip -destination 7za
+if ERRORLEVEL 1 call:failure %errorlevel% "Could not extract 7za.exe"
+
+goto:eof
 
 :dolink
 if NOT EXIST %~1\nul call:failure 1 "%~1 does not exist!"
