@@ -200,6 +200,13 @@ setlocal EnableDelayedExpansion
 set PROGFILES=%ProgramFiles%
 if not "%ProgramFiles(x86)%" == "" set PROGFILES=%ProgramFiles(x86)%
 
+REM Check if Visual Studio 2015 is installed
+set MSVCDIR="%PROGFILES%\Microsoft Visual Studio 14.0"
+if exist %MSVCDIR% (
+    set COMPILER_VER="2014"
+	goto setup_env
+)
+
 REM Check if Visual Studio 2013 is installed
 set MSVCDIR="%PROGFILES%\Microsoft Visual Studio 12.0"
 if exist %MSVCDIR% (
@@ -242,7 +249,7 @@ if exist %MSVCDIR% (
 	goto setup_env
 ) 
 
-call:failure 1 "No compiler : Microsoft Visual Studio (6, 2005, 2008, 2010, 2012 or 2013) is not installed.""
+call:failure 1 "No compiler : Microsoft Visual Studio (6, 2005, 2008, 2010, 2012, 2013 or 2015) is not installed.""
 goto:eof
 
 :setup_env
@@ -284,6 +291,11 @@ if %COMPILER_VER% == "2012" (
 
 if %COMPILER_VER% == "2013" (
 	set VCVERSION = 12
+	goto buildnow
+)
+
+if %COMPILER_VER% == "2015" (
+	set VCVERSION = 14
 	goto buildnow
 )
 
