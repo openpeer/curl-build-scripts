@@ -11,13 +11,14 @@ set BUILD_X86=1
 set BUILD_X64=1
 
 set BASEPATH=%CD%
+set powershell_path=%SYSTEMROOT%\System32\WindowsPowerShell\v1.0\powershell.exe
 
 call:download7a
 if "%FAILURE%" NEQ "0" goto:eof
 
-where powershell > NUL 2>&1
-if ERRORLEVEL 1 call:failure %errorlevel% "Could not local powershell for windows"
-if "%FAILURE%" NEQ "0" goto:eof
+rem where powershell > NUL 2>&1
+rem if ERRORLEVEL 1 call:failure %errorlevel% "Could not local powershell for windows"
+rem if "%FAILURE%" NEQ "0" goto:eof
 
 echo Verifying download from https://github.com/peters/curl-for-windows ...
 
@@ -132,7 +133,7 @@ goto:eof
 :download
 if EXIST %~2 goto:eof
 
-powershell.exe "Start-BitsTransfer %~1 -Destination %~2"
+%powershell_path% "Start-BitsTransfer %~1 -Destination %~2"
 if ERRORLEVEL 1 call:failure %errorlevel% "Could not download %~2"
 if "%FAILURE%" NEQ "0" goto:eof
 echo.
