@@ -71,11 +71,10 @@ if "%failure%" neq "0" goto:eof
 :skiplinkx86
 
 if %BUILD_X64% == 0 goto:skiplinkx64
-
-call:dolink . x64-release-dll current\builds\libcurl-vc-x64-release-dll-ipv6-sspi-winssl
+call:dolink . x64-debug-dll current\builds\libcurl-vc-x64-debug-dll-ipv6-sspi-winssl
 if "%failure%" neq "0" goto:eof
 
-call:dolink . x64-debug-dll current\builds\libcurl-vc-x64-debug-dll-ipv6-sspi-winssl
+call:dolink . x64-release-dll current\builds\libcurl-vc-x64-release-dll-ipv6-sspi-winssl
 if "%failure%" neq "0" goto:eof
 
 call:dolink . x64-release-static current\builds\libcurl-vc-x64-release-static-ipv6-sspi-winssl
