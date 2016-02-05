@@ -10,7 +10,7 @@ set FAILURE=0
 set BUILD_X86=1
 set BUILD_X64=1
 
-set BASEPATH=%CD%
+set BASEPATH="%CD%"
 set powershell_path=%SYSTEMROOT%\System32\WindowsPowerShell\v1.0\powershell.exe
 
 call:download7a
