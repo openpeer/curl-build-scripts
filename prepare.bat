@@ -7,6 +7,10 @@ echo.
 
 set FAILURE=0
 
+reg Query "HKLM\Hardware\Description\System\CentralProcessor\0" | find /i "x86" > NUL && set CPU=x86 || set CPU=x64
+
+echo CPU arhitecture is %CPU%
+
 set BUILD_X86=1
 set BUILD_X64=1
 
@@ -322,24 +326,30 @@ echo -------------------------------------------------------------------------
 echo -------------------------------------------------------------------------
 echo -------------------------------------------------------------------------
 
-call %MSVCDIR%\VC\vcvarsall.bat x86
+::Default is x86 32-bit native compiler
+set COMPILER_PLATFORM=x86
+
+::If architetuce is x64 set compiler to x86 on x64 cross
+if %CPU% == x64 set COMPILER_PLATFORM=amd64_x86
+	
+call %MSVCDIR%\VC\vcvarsall.bat %COMPILER_PLATFORM%
 if ERRORLEVEL 1 call:failure %errorlevel% "Could not setup x86 compiler"
 if "%failure%" neq "0" goto:post_build
 
 
-nmake /f Makefile.vc mode=dll VC=%VCVERSION% DEBUG=yes
+nmake /f Makefile.vc mode=dll VC=%VCVERSION% DEBUG=yes MACHINE=x86
 if ERRORLEVEL 1 call:failure %errorlevel% "Curl x86 debug DLL build failed"
 if "%failure%" neq "0" goto:post_build
 
-nmake /f Makefile.vc mode=dll VC=%VCVERSION% DEBUG=no GEN_PDB=yes
+nmake /f Makefile.vc mode=dll VC=%VCVERSION% DEBUG=no GEN_PDB=yes MACHINE=x86
 if ERRORLEVEL 1 call:failure %errorlevel% "Curl x86 release DLL build failed"
 if "%failure%" neq "0" goto:post_build
 
-nmake /f Makefile.vc mode=static VC=%VCVERSION% DEBUG=yes
+nmake /f Makefile.vc mode=static VC=%VCVERSION% DEBUG=yes MACHINE=x86
 if ERRORLEVEL 1 call:failure %errorlevel% "Curl x86 debug static lib build failed"
 if "%failure%" neq "0" goto:post_build
 
-nmake /f Makefile.vc mode=static VC=%VCVERSION% DEBUG=no
+nmake /f Makefile.vc mode=static VC=%VCVERSION% DEBUG=no MACHINE=x86
 if ERRORLEVEL 1 call:failure %errorlevel% "Curl x86 release static lib build failed"
 if "%failure%" neq "0" goto:post_build
 
@@ -357,7 +367,13 @@ echo -------------------------------------------------------------------------
 echo -------------------------------------------------------------------------
 echo -------------------------------------------------------------------------
 
-call %MSVCDIR%\VC\vcvarsall.bat x64
+::Default is x64 64-bit native compiler
+set COMPILER_PLATFORM=amd64
+
+::If architetuce is x86 set compiler to x64 on x86 cross
+if %CPU% == x86 set COMPILER_PLATFORM=x86_amd64
+	
+call %MSVCDIR%\VC\vcvarsall.bat %COMPILER_PLATFORM%
 if ERRORLEVEL 1 call:failure %errorlevel% "Could not setup x64 compiler"
 if "%failure%" neq "0" goto:post_build
 
