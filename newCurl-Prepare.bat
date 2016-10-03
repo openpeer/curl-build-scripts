@@ -14,10 +14,18 @@ set basepath="%CD%"
 
 ::URLs
 SET downloadURL_7Zip=http://7-zip.org/a/7za920.zip
-set taskFailed=0
+SET zipFileName=7za920.zip
+SET downloadCurlBaseURL=https://curl.haxx.se/download/
+SET curlFileName=curl-7.50.3
+SET curlFileExtension=.zip
+SET curlFullFileName=%curlFileName%%curlFileExtension%
+SET downloadCurlURL=%downloadCurlBaseURL%%curlFileName%%curlFileExtension%
+
+SET taskFailed=0
+SET isCurlReady=0
 
 ::input arguments
-SET supportedInputArguments=;platform;help;logLevel;diagnostic;					
+SET supportedInputArguments=;logLevel;					
 SET platform=all
 SET help=0
 SET logLevel=2
@@ -80,31 +88,49 @@ GOTO parseInputArguments
 :: Start execution of main flow (if parsing input parameters passed without issues)
 
 :main
+CALL:checkCurl
+IF %isCurlReady% EQU 1 GOTO:done
+
 CALL:download7a
 CALL:downloadCurl
 CALL:prepareCurl
-
+CALL:cleanup
+CALL:done
 GOTO:EOF
+
+REM check if entered valid input argument
+:checkIfArgumentIsValid
+IF "!supportedInputArguments:;%~1;=!" neq "%supportedInputArguments%" (
+	::it is valid
+	SET %2=1
+) ELSE (
+	::it is not valid
+	SET %2=0
+)
+GOTO:EOF
+
 :download7a
 
-if EXIST %BASEPATH%\7za\7za.exe GOTO:EOF
+IF EXIST %BASEPATH%\7za\7za.exe GOTO:EOF
+CALL:print %debug% "Downloading 7-zip"
 
-CALL:download %downloadURL_7Zip% 7za920.zip
+CALL:download %downloadURL_7Zip% %zipFileName%
 IF !taskFailed!==1 CALL:error 1 "Failed downloading 7-zip."
 
 if NOT EXIST %BASEPATH%\zipjs.bat CALL:error 1 "Could not find unzip script"
 
 ::echo %BASEPATH%\zipjs.bat unzip -source 7za920.zip -destination 7za
-CALL:print %trace% "Running %BASEPATH%\zipjs.bat unzip -source 7za920.zip -destination 7za"
+CALL:print %trace% "Running %BASEPATH%\zipjs.bat unzip -source %zipFileName% -destination 7za"
 
-CALL %BASEPATH%\zipjs.bat unzip -source 7za920.zip -destination 7za
+CALL:print %debug% "Extracting 7-zip"
+CALL %BASEPATH%\zipjs.bat unzip -source %zipFileName% -destination 7za
 if !ERRORLEVEL! EQU 1 CALL:error 1 "Could not extract 7za.exe"
 
 GOTO:EOF
 
 :downloadCurl
 
-CALL:download http://curl.haxx.se/download/curl-7.41.0.zip curl-7.41.0.zip
+CALL:download %downloadCurlURL% %curlFullFileName%
 IF !taskFailed!==1 CALL:error 1 "Failed downloading curl"
 
 GOTO:EOF
@@ -112,16 +138,16 @@ GOTO:EOF
 :prepareCurl
 
 :: Extract curl to download folder
-CALL:extract curl-7.41.0.zip download
+CALL:extract  %curlFullFileName% download
 IF !taskFailed!==1 CALL:error 1 "Could not extract %~1 into %~2"
 
 :: Create junction for include folder
-CALL:makeLink . include download\curl-7.41.0\include
+CALL:makeLink . include download\%curlFileName%\include
 
 IF EXIST current\NUL RMDIR current
 IF !ERRORLEVEL! EQU 1 CALL:error 1 "Unable to delete current folder"
 
-CALL:makeLink . current download\curl-7.41.0
+CALL:makeLink . current download\%curlFileName%
 
 CALL:determineVisualStudioPath
 
@@ -131,6 +157,34 @@ CALL:makeLibLinks x86
 CALL:build x64
 CALL:makeLibLinks x64
 
+GOTO:EOF
+
+:cleanup
+
+IF EXIST %curlFullFileName% DEL %curlFullFileName%
+IF !ERRORLEVEL! EQU 1 CALL:error 0 "Unable to delete %curlFullFileName%"
+IF EXIST %zipFileName% DEL %zipFileName%
+IF !ERRORLEVEL! EQU 1 CALL:error 0 "Unable to delete %zipFileName%"
+
+CALL:deleteCurlObjectFiles x86
+CALL:deleteCurlObjectFiles x64
+GOTO:EOF
+
+:deleteCurlObjectFiles
+SET prefix=%~1
+CALL:deleteFolder current\builds\libcurl-vc14-%prefix%-release-dll-ipv6-sspi-winssl-obj-lib 
+CALL:deleteFolder current\builds\libcurl-vc14-%prefix%-release-dll-ipv6-sspi-winssl-obj-curl 
+CALL:deleteFolder current\builds\libcurl-vc14-%prefix%-release-static-ipv6-sspi-winssl-obj-lib
+CALL:deleteFolder current\builds\libcurl-vc14-%prefix%-release-static-ipv6-sspi-winssl-obj-curl
+CALL:deleteFolder current\builds\libcurl-vc14-%prefix%-debug-dll-ipv6-sspi-winssl-obj-lib
+CALL:deleteFolder current\builds\libcurl-vc14-%prefix%-debug-dll-ipv6-sspi-winssl-obj-curl
+CALL:deleteFolder current\builds\libcurl-vc14-%prefix%-debug-static-ipv6-sspi-winssl-obj-lib
+CALL:deleteFolder current\builds\libcurl-vc14-%prefix%-debug-static-ipv6-sspi-winssl-obj-curl
+GOTO:EOF
+
+:deleteFolder
+IF EXIST %~1\NUL RMDIR /S /Q %~1
+IF !ERRORLEVEL! EQU 1 CALL:error 0 "Unable to delete %~1"
 GOTO:EOF
 
 :build
@@ -160,10 +214,10 @@ GOTO:EOF
 
 :makeLibLinks
 SET prefix=%~1
-CALL:makeLink . %prefix%-release-dll current\builds\libcurl-vc-%prefix%-release-dll-ipv6-sspi-winssl
-CALL:makeLink . %prefix%-debug-dll current\builds\libcurl-vc-%prefix%-debug-dll-ipv6-sspi-winssl
-CALL:makeLink . %prefix%-release-static current\builds\libcurl-vc-%prefix%-release-static-ipv6-sspi-winssl
-CALL:makeLink . %prefix%-debug-static current\builds\libcurl-vc-%prefix%-debug-static-ipv6-sspi-winssl
+CALL:makeLink . %prefix%-release-dll current\builds\libcurl-vc14-%prefix%-release-dll-ipv6-sspi-winssl
+CALL:makeLink . %prefix%-debug-dll current\builds\libcurl-vc14-%prefix%-debug-dll-ipv6-sspi-winssl
+CALL:makeLink . %prefix%-release-static current\builds\libcurl-vc14-%prefix%-release-static-ipv6-sspi-winssl
+CALL:makeLink . %prefix%-debug-static current\builds\libcurl-vc14-%prefix%-debug-static-ipv6-sspi-winssl
 
 CALL:rename %prefix%-debug-dll\lib\libcurl_debug.exp %prefix%-debug-dll\lib\libcurl.exp
 CALL:rename %prefix%-debug-dll\lib\libcurl_debug.lib %prefix%-debug-dll\lib\libcurl.lib Y
@@ -222,6 +276,7 @@ goto:eof
 REM Download file (first argument) to desired destination (second argument)
 :download
 IF EXIST %~2 GOTO:EOF
+CALL:print %debug% "Downloading %~1 t0 %~2"
 %powershell_path% "Start-BitsTransfer %~1 -Destination %~2"
 IF !ERRORLEVEL! EQU 1 SET taskFailed=1
 
@@ -256,10 +311,29 @@ POPD
 GOTO:EOF
 
 :rename
-
+CALL:print %trace% "Renaming %1 to %~2"
 IF NOT EXIST %~1 CALL:error 1 "Curl folder structure is corrupted"
 MOVE /Y %~1 %~2
 IF !ERRORLEVEL! NEQ 0 CALL:error 1 "Could not rename file from %~1 to %~2"
+GOTO:EOF
+
+:checkCurl
+
+CALL:checkIsCurlReady x86
+IF !isCurlReady! EQU 1 CALL:checkIsCurlReady x64
+
+GOTO:EOF
+
+:checkIsCurlReady
+SET prefix=%~1
+SET isCurlReady=0
+IF NOT EXIST  %prefix%-debug-dll\lib\libcurl.lib GOTO:EOF
+IF NOT EXIST  %prefix%-release-dll\lib\libcurl.lib GOTO:EOF
+IF NOT EXIST  %prefix%-release-static\lib\libcurl.lib GOTO:EOF
+IF NOT EXIST  %prefix%-debug-static\lib\libcurl.lib GOTO:EOF
+
+CALL:print %debug% "Curl is ready for %prefix%"
+SET isCurlReady=1
 GOTO:EOF
 
 REM Print logger message. First argument is log level, and second one is the message
@@ -294,9 +368,9 @@ IF %criticalError%==0 (
 	CALL:print %error% "FAILURE:Preparing curl has failed!"
 	ECHO.
 	::terminate batch execution
-	CALL bin\batchTerminator.bat
+	CALL ..\..\..\bin\batchTerminator.bat
 )
 GOTO:EOF
 
 :done
-CALL:print %info% "Curl is now ready"
+CALL:print %info% "Curl is ready"
