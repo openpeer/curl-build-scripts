@@ -57,13 +57,13 @@ module CurlBuilder
   }
 
   DEFAULT_SETUP = {
-    log_level:          "info", # debug, info, warn, error
+    log_level:          "debug", # debug, info, warn, error
     verbose:            false,
     debug_symbols:      false,
     curldebug:          false,
-    sdk_version:        "8.1",
-    osx_sdk_version:    "10.10",
-    libcurl_version:    "7.38.0",
+    sdk_version:        "10.0",
+    osx_sdk_version:    "10.12",
+    libcurl_version:    "7.50.3",
     architectures:      %w(i386 armv7 armv7s arm64 x86_64),
     xcode_home:         "/Applications/Xcode.app/Contents/Developer",
     run_on_dir:         Dir::pwd,
