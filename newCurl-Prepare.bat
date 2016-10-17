@@ -374,3 +374,4 @@ GOTO:EOF
 
 :done
 CALL:print %info% "Curl is ready"
+exit /b 0
