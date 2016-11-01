@@ -42,7 +42,7 @@ SET trace=4
 
 ::build variables
 set msVS_Path=""
-set msVS_Version
+set msVS_Version=""
 set x86BuildCompilerOption=amd64_x86
 set x64BuildCompilerOption=amd64
 set armBuildCompilerOption=amd64_arm
