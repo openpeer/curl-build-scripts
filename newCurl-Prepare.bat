@@ -301,7 +301,7 @@ IF !ERRORLEVEL! EQU 1 SET taskFailed=1
 GOTO:EOF
 
 :extract
-CALL:print %debug% "Extracting 7z %~1 into %~2 ..."
+CALL:print %trace% "Extracting 7z %~1 into %~2 ..."
 
 
 %BASEPATH%\7za\7za x -aos -o%~2 %~1
