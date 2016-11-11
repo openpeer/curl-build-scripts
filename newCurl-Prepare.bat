@@ -188,25 +188,43 @@ IF !ERRORLEVEL! EQU 1 CALL:error 0 "Unable to delete %~1"
 GOTO:EOF
 
 :build
+CALL:print %warning% "Building curl for %~1"
 
 PUSHD current\winbuild > NUL
 
 CALL:setCompilerOption %~1
+CALL:print %debug% "Building with compiler option %currentBuildCompilerOption%"
 
 CALL %msVS_Path%\VC\vcvarsall.bat %currentBuildCompilerOption%
 IF !ERRORLEVEL! EQU 1 CALL:error 1 "Could not setup %~1 compiler"
 
 
-nmake /f Makefile.vc mode=dll VC=%msVS_Version% DEBUG=yes MACHINE=%~1
+IF %logLevel% GEQ %trace% (
+	nmake /f Makefile.vc mode=dll VC=%msVS_Version% DEBUG=yes MACHINE=%~1
+) ELSE (
+	nmake /f Makefile.vc mode=dll VC=%msVS_Version% DEBUG=yes MACHINE=%~1 >NUL
+)
 IF !ERRORLEVEL! EQU 1 CALL:error 1 "Curl %~1 debug DLL build failed"
 
-nmake /f Makefile.vc mode=dll VC=%msVS_Version% DEBUG=no GEN_PDB=yes MACHINE=%~1
+IF %logLevel% GEQ %trace% (
+	nmake /f Makefile.vc mode=dll VC=%msVS_Version% DEBUG=no GEN_PDB=yes MACHINE=%~1
+) ELSE (
+	nmake /f Makefile.vc mode=dll VC=%msVS_Version% DEBUG=no GEN_PDB=yes MACHINE=%~1 >NUL
+)
 IF !ERRORLEVEL! EQU 1 CALL:error 1 "Curl %~1 release DLL build failed"
 
-nmake /f Makefile.vc mode=static VC=%msVS_Version% DEBUG=yes MACHINE=%~1
+IF %logLevel% GEQ %trace% (
+	nmake /f Makefile.vc mode=static VC=%msVS_Version% DEBUG=yes MACHINE=%~1
+) ELSE (
+	nmake /f Makefile.vc mode=static VC=%msVS_Version% DEBUG=yes MACHINE=%~1 >NUL
+)
 IF !ERRORLEVEL! EQU 1 CALL:error 1 "Curl %~1 debug static lib build failed"
 
-nmake /f Makefile.vc mode=static VC=%msVS_Version% DEBUG=no MACHINE=%~1
+IF %logLevel% GEQ %trace% (
+	nmake /f Makefile.vc mode=static VC=%msVS_Version% DEBUG=no MACHINE=%~1
+) ELSE (
+	nmake /f Makefile.vc mode=static VC=%msVS_Version% DEBUG=no MACHINE=%~1 >NUL
+)
 IF !ERRORLEVEL! EQU 1 CALL:error 1 "Curl %~1 release static lib build failed"
 
 POPD > NUL
