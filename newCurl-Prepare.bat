@@ -21,8 +21,11 @@ SET curlFileExtension=.zip
 SET curlFullFileName=%curlFileName%%curlFileExtension%
 SET downloadCurlURL=%downloadCurlBaseURL%%curlFileName%%curlFileExtension%
 
+::helper flags
 SET taskFailed=0
 SET isCurlReady=0
+SET startTime=0
+SET endingTime=0
 
 ::input arguments
 SET supportedInputArguments=;logLevel;					
@@ -90,6 +93,8 @@ GOTO parseInputArguments
 :main
 CALL:checkCurl
 IF %isCurlReady% EQU 1 GOTO:done
+SET startTime=%time%
+CALL:print %warning% "Preparing curl will take approximately 5 minutes ..."
 
 CALL:download7a
 CALL:downloadCurl
@@ -129,6 +134,7 @@ if !ERRORLEVEL! EQU 1 CALL:error 1 "Could not extract 7za.exe"
 GOTO:EOF
 
 :downloadCurl
+CALL:print %debug% "Downloading curl from %downloadCurlURL%"
 
 CALL:download %downloadCurlURL% %curlFullFileName%
 IF !taskFailed!==1 CALL:error 1 "Failed downloading curl"
@@ -301,10 +307,14 @@ IF !ERRORLEVEL! EQU 1 SET taskFailed=1
 GOTO:EOF
 
 :extract
-CALL:print %trace% "Extracting 7z %~1 into %~2 ..."
+CALL:print %debug% "Extracting 7z %~1 into %~2 ..."
 
+IF %logLevel% GEQ %trace% (
+	%BASEPATH%\7za\7za x -aos -o%~2 %~1
+) ELSE (
+	%BASEPATH%\7za\7za x -aos -o%~2 %~1  >NUL
+)
 
-%BASEPATH%\7za\7za x -aos -o%~2 %~1
 IF !ERRORLEVEL! EQU 1 SET taskFailed=1
 if ERRORLEVEL 1 call:failure %errorlevel% "Could not extract %~1 into %~2"
 
@@ -385,11 +395,40 @@ IF %criticalError%==0 (
 	ECHO.
 	CALL:print %error% "FAILURE:Preparing curl has failed!"
 	ECHO.
+	SET endTime=%time%
+	CALL:showTime
 	::terminate batch execution
 	CALL ..\..\..\bin\batchTerminator.bat
 )
 GOTO:EOF
 
+:showTime
+
+SET options="tokens=1-4 delims=:.,"
+FOR /f %options% %%a in ("%startTime%") do SET start_h=%%a&SET /a start_m=100%%b %% 100&SET /a start_s=100%%c %% 100&SET /a start_ms=100%%d %% 100
+FOR /f %options% %%a in ("%endTime%") do SET end_h=%%a&SET /a end_m=100%%b %% 100&SET /a end_s=100%%c %% 100&SET /a end_ms=100%%d %% 100
+
+SET /a hours=%end_h%-%start_h%
+SET /a mins=%end_m%-%start_m%
+SET /a secs=%end_s%-%start_s%
+SET /a ms=%end_ms%-%start_ms%
+IF %ms% lss 0 SET /a secs = %secs% - 1 & SET /a ms = 100%ms%
+IF %secs% lss 0 SET /a mins = %mins% - 1 & SET /a secs = 60%secs%
+IF %mins% lss 0 SET /a hours = %hours% - 1 & SET /a mins = 60%mins%
+IF %hours% lss 0 SET /a hours = 24%hours%
+IF 1%ms% lss 100 SET ms=0%ms%
+IF %secs% lss 10 SET secs=0%secs%
+IF %mins% lss 10 SET mins=0%mins%
+IF %hours% lss 10 SET hours=0%hours%
+
+:: mission accomplished
+SET /a totalsecs = %hours%*3600 + %mins%*60 + %secs% 
+ECHO [93mTotal execution time: %hours%:%mins%:%secs% (%totalsecs%s total)[0m
+
+GOTO:EOF
+
 :done
 CALL:print %info% "Curl is ready"
+SET endTime=%time%
+CALL:showTime
 exit /b 0
