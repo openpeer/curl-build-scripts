@@ -1,4 +1,4 @@
-:: Name:     newCurl-Prepare.bat
+:: Name:     prepareCurl.bat
 :: Purpose:  Download and build curl
 :: Author:   Sergej Jovanovic
 :: Email:	 sergej@gnedo.com
