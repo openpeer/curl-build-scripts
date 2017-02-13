@@ -2,9 +2,28 @@
 
 set -e
 
+isCurlReady=0
+iOSCurlReleasePath=./curl/ios-appstore/lib
+iOSCurlDebugPath=./curl/ios-dev/lib
+macOSCurlReleasePath=./curl/osx/lib
+
 echo
 echo Preparing curl...
 echo
+
+checkCurl() {
+if [ ! -f $iOSCurlReleasePath/libcurl.a ]; then
+	return
+fi
+if [ ! -f $iOSCurlDebugPath/libcurl.a ]; then
+	return
+fi
+if [ ! -f $macOSCurlReleasePath/libcurl.a ]; then
+	return
+fi
+
+isCurlReady=1
+}
 
 sdkpath() {
 	platform=$1
@@ -115,21 +134,29 @@ preparelink()
 	popd > /dev/null
 }
 
-sdkpath iPhoneOS
-IOSSDK="${SDK}"
-echo Discovered iPhoneOS  ${IOSSDK} SDK ...
-echo
-sdkpath MacOSX
-MACSDK="${SDK}"
-echo Discovered MacOSX ${MACSDK} SDK ...
-echo
+checkCurl
 
-echo ./build_curl --sdk-version ${IOSSDK} --osx-sdk-version ${MACSDK}
-./build_curl --sdk-version ${IOSSDK} --osx-sdk-version ${MACSDK}
+if [ $isCurlReady -eq 0 ]; then
+	sdkpath iPhoneOS
+	IOSSDK="${SDK}"
+	echo Discovered iPhoneOS  ${IOSSDK} SDK ...
+	echo
+	sdkpath MacOSX
+	MACSDK="${SDK}"
+	echo Discovered MacOSX ${MACSDK} SDK ...
+	echo
 
-mkdir -p curl/curl
-cp -f curl.h.template curl/curl/curl.h
+	echo ./build_curl --sdk-version ${IOSSDK} --osx-sdk-version ${MACSDK}
+	./build_curl --sdk-version ${IOSSDK} --osx-sdk-version ${MACSDK}
 
-echo
-echo Curl ready.
-echo
+	mkdir -p curl/curl
+	cp -f curl.h.template curl/curl/curl.h
+
+	echo
+	echo Curl ready.
+	echo
+else
+	echo
+	echo Curl is already set.
+	echo
+fi
