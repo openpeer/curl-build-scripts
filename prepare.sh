@@ -2,32 +2,94 @@
 
 set -e
 
+logLevel=2
+
+#log levels
+error=0
+info=1
+warning=2
+debug=3
+trace=4
+
 isCurlReady=0
 iOSCurlReleasePath=./curl/ios-appstore/lib
 iOSCurlDebugPath=./curl/ios-dev/lib
 macOSCurlReleasePath=./curl/osx/lib
 
-echo
-echo Preparing curl...
-echo
+print()
+{
+  logType=$1
+  logMessage=$2
 
-checkCurl() {
-if [ ! -f $iOSCurlReleasePath/libcurl.a ]; then
-	return
-fi
-if [ ! -f $iOSCurlDebugPath/libcurl.a ]; then
-	return
-fi
-if [ ! -f $macOSCurlReleasePath/libcurl.a ]; then
-	return
-fi
-
-isCurlReady=1
+  if [ $logLevel -eq  $logType ] || [ $logLevel -gt  $logType ]
+  then
+  	if [ $logType -eq 0 ]
+    then
+      printf "\e[0;31m $logMessage \e[m\n"
+    fi
+    if [ $logType -eq 1 ]
+    then
+      printf "\e[0;32m $logMessage \e[m\n"
+    fi
+    if [ $logType -eq 2 ]
+    then
+      printf "\e[0;33m $logMessage \e[m\n"
+    fi
+    if [ $logType -gt 2 ]
+    then
+      echo $logMessage
+    fi
+  fi
 }
 
-sdkpath() {
+error()
+{
+  criticalError=$1
+  errorMessage=$2
+
+  if [ $criticalError -eq 0 ]
+  then
+  	echo
+  	print $warning "WARNING: $errorMessage"
+  	echo
+  else
+  	echo
+    print $error "CRITICAL ERROR: $errorMessage"
+  	echo
+  	echo
+  	print $error "FAILURE:Preparing WebRtc environment has failed!"
+  	echo
+    popd > /dev/null
+  	exit 1
+  fi
+}
+
+checkCurl() 
+{
+	print $warning "Checking if curl is ready ..."
+
+	if [ ! -f $iOSCurlReleasePath/libcurl.a ]; 
+	then
+		return
+	fi
+
+	if [ ! -f $iOSCurlDebugPath/libcurl.a ]; 
+	then
+		return
+	fi
+
+	if [ ! -f $macOSCurlReleasePath/libcurl.a ]; 
+	then
+		return
+	fi
+
+	isCurlReady=1
+}
+
+sdkpath() 
+{
 	platform=$1
-	echo Discovering ${platform} SDK...
+	print $warning "Discovering ${platform} SDK ..."
 
 	major_start=13
 	major_stop=4
@@ -49,14 +111,14 @@ sdkpath() {
     if [ ! -d "${root}" ]
     then
         echo " "
-        echo "Oopsie.  You don't have an SDK root in either of these locations: "
-        echo "   ${root} "
-        echo "   ${oldRoot}"
+        print $warning "Oopsie.  You don't have an SDK root in either of these locations: "
+        print $warning "   ${root} "
+        print $warning "   ${oldRoot}"
         echo " "
-        echo "If you have 'locate' enabled, you might find where you have it installed with:"
-        echo "   locate iPhoneOS.platform | grep -v 'iPhoneOS.platform/'"
+        print $warning "If you have 'locate' enabled, you might find where you have it installed with:"
+        print $warning "   locate iPhoneOS.platform | grep -v 'iPhoneOS.platform/'"
         echo " "
-        echo "and alter the 'root' variable in the script -- or install XCode if you can't find it... "
+        print $warning "and alter the 'root' variable in the script -- or install XCode if you can't find it... "
         echo " "
         exit 1
     fi
@@ -73,7 +135,7 @@ sdkpath() {
 		      if [ -d "${root}/SDKs/${platform}${major}.${minor}.${subminor}.sdk" ]
 		      then
 		      	SDK="${major}.${minor}.${subminor}"
-			    echo Found SDK in location "${root}/SDKs/${platform}${SDK}.sdk"
+			    	print $debug "Found SDK in location ${root}/SDKs/${platform}${SDK}.sdk"
 		        return
 		      fi
 	      done
@@ -81,7 +143,7 @@ sdkpath() {
 	      if [ -d "${root}/SDKs/${platform}${major}.${minor}.sdk" ]
 	      then
 	      	SDK="${major}.${minor}"
-		    echo Found SDK in location "${root}/SDKs/${platform}${SDK}.sdk"
+		    	print $debug "Found SDK in location ${root}/SDKs/${platform}${SDK}.sdk"
 	        return
 	      fi
       done
@@ -89,7 +151,7 @@ sdkpath() {
       if [ -d "${root}/SDKs/${platform}${major}.sdk" ]
       then
       	SDK="${major}"
-	    echo Found SDK in location "${root}/SDKs/${platform}${SDK}.sdk"
+	    	print $debug "Found SDK in location ${root}/SDKs/${platform}${SDK}.sdk"
         return
       fi
     done
@@ -97,66 +159,83 @@ sdkpath() {
     if [ "${SDK}" == "unknown" ]
     then
         echo " "
-        echo "Unable to determine the SDK version to use."
+        print $error "Unable to determine the SDK version to use."
         echo " "
-        echo "If you have 'locate' enabled, you might find where you have it installed with:"
-        echo "   locate iPhoneOS.platform | grep -v 'iPhoneOS.platform/'"
+        print $error "If you have 'locate' enabled, you might find where you have it installed with:"
+        print $error "   locate iPhoneOS.platform | grep -v 'iPhoneOS.platform/'"
         echo " "
-        echo "and alter the SDKCheck variables in the script -- or install XCode if you can't find it... "
+        print $error "and alter the SDKCheck variables in the script -- or install XCode if you can't find it... "
         echo " "
         exit 1
     fi
 }
 
-preparelink()
+setPath()
 {
-	if [ ! -d "$1" ]; then
-		echo ERROR: Path to link does not exist \"$1\" !
+	sdkpath $1
+	if [ $1 == "iPhoneOS" ];
+	then
+	  IOSSDK="${SDK}"
+	  print $debug "Discovered iPhoneOS  ${IOSSDK} SDK ..."
+	else
+	  MACSDK="${SDK}"
+	  print $debug "Discovered MacOSX ${MACSDK} SDK ..."
 	fi
-	pushd $1 > /dev/null
-	if [ ! -d "$3" ]; then
-		echo ERROR: Link destination is not found \"$3\" inside \"$1\" !
-		popd > /dev/null
-		exit -1
-	fi
-	if [ ! -h "$2" ]; then
-		echo
-		echo In path \"$1\" creating symbolic link \"$2\" pointing to \"$3\"...
-		echo
-		ln -s $3 $2
-		if [ $? -ne 0 ]; then
-			failure=$?
-			echo Faield to create symbolic link
-			popd > /dev/null
-			exit $failure
-		fi
-	fi
-	popd > /dev/null
 }
 
-checkCurl
-
-if [ $isCurlReady -eq 0 ]; then
-	sdkpath iPhoneOS
-	IOSSDK="${SDK}"
-	echo Discovered iPhoneOS  ${IOSSDK} SDK ...
-	echo
-	sdkpath MacOSX
-	MACSDK="${SDK}"
-	echo Discovered MacOSX ${MACSDK} SDK ...
-	echo
-
-	echo ./build_curl --sdk-version ${IOSSDK} --osx-sdk-version ${MACSDK}
-	./build_curl --sdk-version ${IOSSDK} --osx-sdk-version ${MACSDK}
-
+buildCurl()
+{
+  print $warning "Building Curl ..."
+  
+  if [ $logLevel -gt $debug ];
+  then
+		./build_curl --sdk-version ${IOSSDK} --osx-sdk-version ${MACSDK}
+	else
+		./build_curl --sdk-version ${IOSSDK} --osx-sdk-version ${MACSDK} > /dev/null
+	fi
+	
+	if [ $? -ne 0 ]; 
+	then
+    error 1 "Failed building Curl"
+  fi
+      
 	mkdir -p curl/curl
 	cp -f curl.h.template curl/curl/curl.h
+}
 
-	echo
-	echo Curl ready.
-	echo
-else
-	echo
-	echo Curl is already set.
-	echo
+finished()
+{
+  echo
+  print $info "Success: Curl is ready."
+  	
+}
+
+#;logLevel;
+while getopts ":p:l:" opt; do
+  case $opt in
+    l)
+        logLevel=$OPTARG
+        ;;
+    esac
+done
+
+echo
+print $info "Running Curl prepare script ..."
+
+#Main flow
+checkCurl
+
+if [ $isCurlReady -eq 0 ]; 
+then
+	setPath iPhoneOS
+	setPath MacOSX
+	buildCurl
+
+	#echo ./build_curl --sdk-version ${IOSSDK} --osx-sdk-version ${MACSDK}
+	#./build_curl --sdk-version ${IOSSDK} --osx-sdk-version ${MACSDK}
+
+	#mkdir -p curl/curl
+	#cp -f curl.h.template curl/curl/curl.h
 fi
+
+finished	
