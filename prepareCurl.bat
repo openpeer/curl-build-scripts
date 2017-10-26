@@ -197,14 +197,16 @@ GOTO:EOF
 CALL:print %warning% "Building curl for %~1"
 
 PUSHD current\winbuild > NUL
+SEt folder=%CD%
 
 CALL:setCompilerOption %~1
 CALL:print %debug% "Building with compiler option %currentBuildCompilerOption%"
 
-CALL %msVS_Path%\VC\vcvarsall.bat %currentBuildCompilerOption%
+CALL %msVS_Path%\VC\Auxiliary\Build\vcvarsall.bat %currentBuildCompilerOption%
 IF !ERRORLEVEL! EQU 1 CALL:error 1 "Could not setup %~1 compiler"
 
-
+REM vcvarsall.bat moves to users folder so cs is necessary
+CD !folder!
 IF %logLevel% GEQ %trace% (
 	nmake /f Makefile.vc mode=dll VC=%msVS_Version% DEBUG=yes MACHINE=%~1
 ) ELSE (
@@ -282,18 +284,19 @@ SET progfiles=%ProgramFiles%
 IF NOT "%ProgramFiles(x86)%" == "" SET progfiles=%ProgramFiles(x86)%
 
 REM Check if Visual Studio 2015 is installed
-SET msVS_Path="%progfiles%\Microsoft Visual Studio 14.0"
+SET msVS_Path="%progfiles%\Microsoft Visual Studio\2017"
 SET msVS_Version=14
 
-IF NOT EXIST %msVS_Path% (
-	REM Check if Visual Studio 2013 is installed
-	SET msVS_Path="%progfiles%\Microsoft Visual Studio 12.0"
-	SET msVS_Version=12
+IF EXIST !msVS_Path! (
+	SET msVS_Path=!msVS_Path:"=!
+	IF EXIST "!msVS_Path!\Community" SET msVS_Path="!msVS_Path!\Community"
+	IF EXIST "!msVS_Path!\Professional" SET msVS_Path="!msVS_Path!\Professional"
+	IF EXIST "!msVS_Path!\Enterprise" SET msVS_Path="!msVS_Path!\Enterprise"
 )
 
-IF NOT EXIST %msVS_Path% CALL:error 1 "Visual Studio 2015 or 2013 is not installed"
+IF NOT EXIST !msVS_Path! CALL:error 1 "Visual Studio 2017 is not installed"
 
-CALL:print %debug% "Visual Studio path is %MSVCDIR%"
+CALL:print %debug% "Visual Studio path is !msVS_Path!"
 
 goto:eof
 
